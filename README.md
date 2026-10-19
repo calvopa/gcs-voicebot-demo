@@ -8,25 +8,34 @@ Stack: HTML + CSS + JS puro. Sin build, sin frameworks.
 
 ## Archivos
 
-- `index.html` — estructura de la página.
+- `index.html` — estructura de la página, incluye las 3 tabs de agentes con sus `agent-id`.
 - `styles.css` — estilos (dark mode).
-- `script.js` — mensaje de estado del permiso de micrófono.
+- `script.js` — selector de agentes (monta/desmonta `<elevenlabs-convai>` dinámicamente) +
+  mensaje de estado del permiso de micrófono.
 
-## Configurar el agente real
+## Selector de agentes (3 demos en vivo)
 
-1. Abrí `index.html` y buscá esta línea:
+La página tiene 3 tabs, cada una con su propio agente de ElevenLabs. Solo hay un
+`<elevenlabs-convai>` montado en el DOM a la vez — `script.js` lo destruye y crea uno
+nuevo al cambiar de tab, así no quedan 3 widgets conectados en paralelo (consumiría
+recursos y pediría/mantendría el micrófono de más).
 
-   ```html
-   <elevenlabs-convai agent-id="AGENT_ID_PLACEHOLDER"></elevenlabs-convai>
-   ```
+Agentes configurados en `index.html` (atributo `data-agent-id` de cada `.agent-tab`):
 
-   Reemplazá `AGENT_ID_PLACEHOLDER` por el `agent-id` real de tu agente en
-   ElevenLabs Conversational AI.
+| Tab | agent-id | Descripción |
+|---|---|---|
+| Clara | `agent_3001m236q168e24994skx7wskf5w` | Acompañante — agente conversacional de compañía |
+| RRHH | `agent_0901kbgae1pse21tqa2b10w5mxs9` | Asistente de voz para procesos de Recursos Humanos |
+| Alteor | `agent_4401krgvqay1ef38gw40payzz1rr` | Agente de voz para la empresa Alteor |
 
-2. En el panel de ElevenLabs, abrí el agente → pestaña **Advanced** → deshabilitá
-   la autenticación (**Enable authentication: off** / "Allow unauthenticated
-   access" según la versión del panel). Si no hacés esto, el widget público no
-   va a poder conectarse desde una página sin backend.
+Para agregar, sacar o reordenar agentes, editá los botones `.agent-tab` dentro de
+`#widget` en `index.html` (cada uno lleva `data-agent-id` y `data-agent-name`) — no
+hace falta tocar `script.js`, lee esos atributos directamente.
+
+**Cada agente necesita autenticación deshabilitada en ElevenLabs** (panel del agente
+→ pestaña **Advanced** → "Enable authentication: off" / "Allow unauthenticated access"
+según la versión del panel). Si no está deshabilitada, el widget público no va a poder
+conectarse desde esta página sin backend.
 
 ## Ocultar el branding "Powered by ElevenLabs"
 

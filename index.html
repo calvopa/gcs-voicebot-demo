@@ -41,19 +41,51 @@
     <div class="widget-card">
       <div class="widget-card__glow" aria-hidden="true"></div>
       <div class="widget-card__inner">
-        <h2 class="widget-card__title">Tocá el micrófono y hablá</h2>
+        <h2 class="widget-card__title">Elegí un agente y hablá</h2>
         <p class="widget-card__hint" id="mic-hint">
           Tu navegador te va a pedir permiso de micrófono. Aceptalo para que el agente te escuche.
         </p>
 
-        <div class="widget-mount" id="widget-mount">
-          <!--
-            Reemplazá AGENT_ID_PLACEHOLDER por el agent-id real de ElevenLabs.
-            El agente tiene que tener la autenticación deshabilitada
-            (panel ElevenLabs → Advanced) para poder usarse público, sin backend.
-          -->
-          <elevenlabs-convai agent-id="AGENT_ID_PLACEHOLDER"></elevenlabs-convai>
+        <div class="agent-tabs" role="tablist" aria-label="Elegir agente de demo">
+          <button
+            class="agent-tab is-active"
+            role="tab"
+            aria-selected="true"
+            data-agent-id="agent_3001m236q168e24994skx7wskf5w"
+            data-agent-name="Clara"
+          >
+            <span class="agent-tab__name">Clara</span>
+            <span class="agent-tab__desc">Acompañante</span>
+          </button>
+          <button
+            class="agent-tab"
+            role="tab"
+            aria-selected="false"
+            data-agent-id="agent_0901kbgae1pse21tqa2b10w5mxs9"
+            data-agent-name="Agente de RRHH"
+          >
+            <span class="agent-tab__name">RRHH</span>
+            <span class="agent-tab__desc">Recursos Humanos</span>
+          </button>
+          <button
+            class="agent-tab"
+            role="tab"
+            aria-selected="false"
+            data-agent-id="agent_4401krgvqay1ef38gw40payzz1rr"
+            data-agent-name="Alteor"
+          >
+            <span class="agent-tab__name">Alteor</span>
+            <span class="agent-tab__desc">Agente de empresa</span>
+          </button>
         </div>
+
+        <!--
+          El <elevenlabs-convai> se crea y destruye dinámicamente desde script.js
+          según la tab activa — nunca hay más de un widget montado a la vez.
+          Cada agente tiene que tener la autenticación deshabilitada en ElevenLabs
+          (panel → Advanced) para poder usarse público, sin backend.
+        -->
+        <div class="widget-mount" id="widget-mount"></div>
 
         <p class="widget-card__foot">🔴 En vivo — es una IA real respondiendo, no un bot pregrabado.</p>
       </div>
