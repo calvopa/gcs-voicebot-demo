@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCS Voicebots — Hablá con nuestro agente de IA ahora mismo</title>
+<meta name="description" content="GrupoCESA construye voicebots con IA para empresas. Probá uno en vivo, ahora, desde esta página.">
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero__bg" aria-hidden="true"></div>
+  <nav class="nav">
+    <div class="nav__brand">GCS<span>·voicebots</span></div>
+    <a href="#contacto" class="nav__cta">Hablemos</a>
+  </nav>
+
+  <div class="hero__content">
+    <p class="hero__eyebrow">Demo en vivo · sin llamada telefónica</p>
+    <h1 class="hero__title">Dejá de imaginar un agente de voz con IA.<br>Hablá con uno, ahora.</h1>
+    <p class="hero__subtitle">
+      GrupoCESA diseña y pone en producción voicebots con IA para empresas:
+      atención, ventas y soporte por voz, integrados a WhatsApp, n8n y los
+      sistemas que ya usás. Esto de abajo no es un video ni una maqueta.
+      Es el agente, en vivo, esperando que le hables.
+    </p>
+    <a href="#widget" class="hero__arrow" aria-label="Ir al widget de voz">
+      <span>Probalo acá abajo</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M19 12l-7 7-7-7"/>
+      </svg>
+    </a>
+  </div>
+</header>
+
+<main>
+
+  <section id="widget" class="widget-section">
+    <div class="widget-card">
+      <div class="widget-card__glow" aria-hidden="true"></div>
+      <div class="widget-card__inner">
+        <h2 class="widget-card__title">Tocá el micrófono y hablá</h2>
+        <p class="widget-card__hint" id="mic-hint">
+          Tu navegador te va a pedir permiso de micrófono. Aceptalo para que el agente te escuche.
+        </p>
+
+        <div class="widget-mount" id="widget-mount">
+          <!--
+            Reemplazá AGENT_ID_PLACEHOLDER por el agent-id real de ElevenLabs.
+            El agente tiene que tener la autenticación deshabilitada
+            (panel ElevenLabs → Advanced) para poder usarse público, sin backend.
+          -->
+          <elevenlabs-convai agent-id="AGENT_ID_PLACEHOLDER"></elevenlabs-convai>
+        </div>
+
+        <p class="widget-card__foot">🔴 En vivo — es una IA real respondiendo, no un bot pregrabado.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="timeline">
+    <h2 class="section-title">Qué va a pasar cuando le hables</h2>
+    <ol class="timeline__list">
+      <li class="timeline__item">
+        <span class="timeline__num">01</span>
+        <h3>Se presenta y te pregunta si es un buen momento</h3>
+        <p>Nada de arrancar a los atropellos. El agente saluda, se presenta y confirma que podés hablar — como lo haría una persona.</p>
+      </li>
+      <li class="timeline__item">
+        <span class="timeline__num">02</span>
+        <h3>Entiende el contexto y sigue la charla</h3>
+        <p>No repite un guion fijo. Escucha lo que decís, interpreta la intención y lleva la conversación de forma natural, con interrupciones y todo.</p>
+      </li>
+      <li class="timeline__item">
+        <span class="timeline__num">03</span>
+        <h3>Responde preguntas reales del negocio</h3>
+        <p>Precios, servicios, cómo funciona, qué necesitás para arrancar — el agente conoce el negocio y responde con información concreta, no genérica.</p>
+      </li>
+      <li class="timeline__item">
+        <span class="timeline__num">04</span>
+        <h3>Te propone el próximo paso</h3>
+        <p>Termina la charla sabiendo qué sigue: una demo, un contacto con el equipo, o directamente coordinar algo. Sin dejarte colgado.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="capabilities">
+    <h2 class="section-title">Lo que hay detrás de esta demo</h2>
+    <p class="section-subtitle">Esto es lo mínimo. Cada voicebot que armamos se adapta al negocio del cliente.</p>
+    <div class="capabilities__grid">
+      <div class="cap-card">
+        <div class="cap-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.97-4.03 9-9 9-1.5 0-2.91-.37-4.15-1.02L3 21l1.1-3.67A8.96 8.96 0 0 1 3 12c0-4.97 4.03-9 9-9s9 4.03 9 9z"/></svg>
+        </div>
+        <h3>Integraciones reales</h3>
+        <p>WhatsApp, n8n, HiBot, calendarios, CRMs. El agente no vive aislado: agenda turnos, consulta sistemas y dispara automatizaciones.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5h12M3 12h18M3 19h12"/></svg>
+        </div>
+        <h3>Habla como vos querés</h3>
+        <p>Idiomas y acentos naturales, configurados para que suene a tu marca — rioplatense, neutro, o el que necesite tu público.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Sabe cuándo pasarte a un humano</h3>
+        <p>Cuando la consulta se escapa del alcance o el cliente lo pide, deriva la conversación a tu equipo, sin dar vueltas.</p>
+      </div>
+      <div class="cap-card">
+        <div class="cap-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg>
+        </div>
+        <h3>Métricas de cada charla</h3>
+        <p>Cada conversación queda registrada: duración, resultado, intención detectada. Nada de caja negra.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contacto" class="final-cta">
+    <h2 class="final-cta__title">¿Querés uno así para tu negocio?</h2>
+    <p class="final-cta__text">
+      Armamos el agente, lo integramos a lo que ya usás, y lo dejamos funcionando.
+      Sin vueltas, sin meses de implementación.
+    </p>
+    <div class="final-cta__actions">
+      <a href="mailto:hola@grupocesa.net" class="btn btn--primary">hola@grupocesa.net</a>
+      <a href="https://wa.me/5491100000000" class="btn btn--ghost" target="_blank" rel="noopener">Escribinos por WhatsApp</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p>GrupoCESA (GCS) — voicebots con IA para empresas.</p>
+</footer>
+
+<script src="https://unpkg.com/@elevenlabs/convai-widget-embed@0.20.0" async type="text/javascript"></script>
+<script src="script.js"></script>
+</body>
+</html>
