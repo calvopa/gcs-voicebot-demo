@@ -27,7 +27,7 @@ Agentes configurados en `index.html` (atributo `data-agent-id` de cada `.agent-t
 | Tab | agent-id | Descripción | Estado |
 |---|---|---|---|
 | RRHH | `agent_0901kbgae1pse21tqa2b10w5mxs9` | Asistente de voz para procesos de Recursos Humanos | ✅ funciona |
-| Alteor | `agent_4401krgvqay1ef38gw40payzz1rr` | Agente de voz para la empresa Alteor | ⚠️ ver pendiente abajo |
+| Alteor | `agent_4401krgvqay1ef38gw40payzz1rr` | Agente de voz para la empresa Alteor | ✅ funciona |
 
 **Sacado de la demo:** `agent_3001m236q168e24994skx7wskf5w` ("Clara") — es el agente de
 **producción de JaiCARE** (otro proyecto, no esta demo), requiere una variable dinámica
@@ -35,11 +35,11 @@ Agentes configurados en `index.html` (atributo `data-agent-id` de cada `.agent-t
 arrancar. Si se quiere un agente "Acompañante" para esta demo, armar uno nuevo pensado
 para uso público standalone, no reusar el de JaiCARE.
 
-**Pendiente:** Alteor tira `"Override for field 'language' is not allowed by config"` al
-iniciar la llamada — la configuración de seguridad de ese agente en ElevenLabs no permite
-que el widget le mande un override de idioma (a diferencia de RRHH, que sí lo permite).
-Se arregla desde el panel de ElevenLabs → agente Alteor → **Security** → habilitar
-overrides de idioma (o el campo que corresponda según la versión del panel).
+**Resuelto (2026-10-20):** Alteor tiraba `"Override for field 'language' is not allowed
+by config"` al iniciar la llamada — su configuración de seguridad en ElevenLabs no
+permitía que el widget le mande un override de idioma. Se arregló desde el panel de
+ElevenLabs → agente Alteor → **Settings → Security → Overrides → Agent language** (branch
+`Alteor1.0`, la que está en Live).
 
 Para agregar, sacar o reordenar agentes, editá los botones `.agent-tab` dentro de
 `#widget` en `index.html` (cada uno lleva `data-agent-id` y `data-agent-name`) — no
