@@ -73,6 +73,7 @@ Agentes configurados en `index.html` (atributo `data-agent-id` de cada `.agent-t
 | RRHH | `agent_0901kbgae1pse21tqa2b10w5mxs9` | Asistente de voz para procesos de Recursos Humanos | ✅ funciona |
 | Alteor | `agent_4401krgvqay1ef38gw40payzz1rr` | Agente de voz para la empresa Alteor | ✅ funciona |
 | Turnos | `agent_6101m5dh1s78emft0j0sg6hz83xy` | Recepcionista de "Clínica Demo" — agenda y consulta turnos simulando disponibilidad (sin backend real conectado) | ✅ funciona |
+| Cobros | `agent_2701m5dhh40fejz93n55qd2zf8dq` | Agente de llamadas salientes de "Fintech Demo" — recordatorio de pago / aviso de vencimiento con manejo de objeciones, sin CRM real conectado | ✅ funciona |
 
 **Sacado de la demo:** `agent_3001m236q168e24994skx7wskf5w` ("Clara") — es el agente de
 **producción de JaiCARE** (otro proyecto, no esta demo), requiere una variable dinámica
