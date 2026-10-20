@@ -53,13 +53,10 @@ conectarse desde esta página sin backend.
 ## Skin del widget (colores, textos, branding)
 
 El widget vive en shadow DOM — no es estilable con CSS normal ni con `::part()`
-(ElevenLabs no expone partes internas en la versión `0.20.0`). Probamos forzar
-`position: relative` por CSS para que el panel de conversación fluya dentro de
-la tarjeta en vez de flotar como burbuja fija: **rompe el panel expandido**
-(queda clippeado a una barra de unos pocos píxeles) — no lo usamos en producción
-por eso. La personalización real pasa por los **atributos documentados del
-elemento**, seteados en `script.js` → objeto `WIDGET_SKIN`, aplicados a cada
-`<elevenlabs-convai>` al montarlo:
+(ElevenLabs no expone partes internas en la versión `0.20.0`). La
+personalización pasa por los **atributos documentados del elemento**, seteados
+en `script.js` → objeto `WIDGET_SKIN`, aplicados a cada `<elevenlabs-convai>`
+al montarlo:
 
 | Atributo | Qué hace | Valor usado acá |
 |---|---|---|
@@ -68,39 +65,109 @@ elemento**, seteados en `script.js` → objeto `WIDGET_SKIN`, aplicados a cada
 | `dismissible` | Deja minimizar el widget | presente (sin valor) |
 | `action-text`, `start-call-text`, `end-call-text`, `expand-text`, `collapse-text`, `listening-text`, `speaking-text` | Textos del widget | traducidos a español rioplatense |
 
-Esto **reemplaza** el intento anterior con `::part()` en `styles.css` (no
-funcionaba — quedaba documentado acá por si en una versión futura del widget
-ElevenLabs expone partes reales). Para cambiar colores o textos, editá
-`WIDGET_SKIN` en `script.js` — se aplica a todos los agentes por igual.
+**Ojo:** varios agentes NO toman estos textos — usan sus propios defaults de
+i18n según el idioma configurado del agente, no nuestros atributos. Vimos el
+botón de cortar como "Cortar" (el nuestro), "Finalizar" y "End" en distintos
+agentes; el de colapsar como "Contraer" en vez del "Cerrar" que configuramos.
+Por eso `script.js` nunca depende de un texto exacto para encontrar botones
+(ver "Auto-start" y "Viewport del widget" más abajo) — solo lo usa como atajo
+rápido antes de caer a detección por descarte.
 
-## Auto-start de la llamada
+Para cambiar colores o textos, editá `WIDGET_SKIN` en `script.js` — se aplica
+a todos los agentes por igual (aunque no todos lo respeten).
 
-Al elegir una tab, la llamada arranca sola — no hace falta el segundo click en
-el botón propio del widget. Esta versión (`0.20.0`) **no expone un método JS**
-tipo `widget.startConversation()` en el elemento (se probó, el prototipo solo
-tiene los callbacks del custom element). El único gancho real es su botón
-interno dentro del shadow DOM: `script.js` → `autoStartConversation()` lo
-busca con `widget.shadowRoot.querySelector("button")` (el primer botón del
-panel, que en todos los agentes probados es el de iniciar llamada) y le hace
-`.click()`. Reintenta cada 200ms hasta 5 veces por si el shadow DOM todavía no
-se pobló cuando se intenta.
+## El widget queda completamente oculto — indicador propio
 
-**Frágil, ojo:** esto depende de la estructura interna del widget, que
-ElevenLabs no documenta ni garantiza entre versiones. Si tras actualizar
-`@elevenlabs/convai-widget-embed` la llamada deja de arrancar sola, probar:
-1. Abrir el widget manualmente y confirmar si el primer botón del panel
-   sigue siendo el de "iniciar llamada" (inspeccionar `shadowRoot` en DevTools).
-2. Si cambió el orden o la estructura, ajustar el selector en
-   `autoStartConversation()`.
-3. Si ElevenLabs termina exponiendo `startConversation()` como método público
-   del elemento en una versión futura, usar eso en vez del click al botón —
-   es la vía documentada y no depende de la estructura interna.
+La ventana nativa de ElevenLabs (burbuja flotante, panel de conversación) **no
+se muestra nunca**, ni siquiera durante la llamada. En su lugar hay un
+indicador armado a mano en `index.html` (`#call-status`) con texto de estado y
+botón "Cortar" real, manejado por `startStatusPolling()` en `script.js`.
 
-**Lo que no se puede customizar:** el fondo, tipografía y layout del panel
-interno del widget (chrome propio de ElevenLabs, no configurable desde afuera
-del shadow DOM). El widget siempre aparece como burbuja flotante fija en una
-esquina — no hay forma soportada de embeberlo inline en el flujo de la página
-sin romper su funcionamiento.
+**Por qué está oculto así:** el panel visible del widget vive *dentro* del
+shadow DOM con su propio `position: fixed` anclado al viewport — no sigue la
+posición del host (`<elevenlabs-convai>`), así que mover el host con left/top
+no lo mueve. Probamos `position: relative` en el host para que fluya inline:
+rompe el panel expandido (queda clippeado a unos pocos píxeles). La solución
+que quedó en `styles.css`:
+
+```css
+.widget-mount elevenlabs-convai {
+  position: fixed; left: 0; top: 0; width: 0; height: 0; overflow: hidden;
+  transform: scale(0.0001); opacity: 0; pointer-events: none;
+}
+```
+
+`transform` crea un *containing block* para los descendientes `position:fixed`
+de todo el árbol — shadow DOM incluido, es una regla normal de CSS, no la
+esquiva el shadow boundary — así el panel interno queda atrapado en una caja
+de 0px en vez de anclado al viewport. Sin esto, `opacity:0` solo no alcanza:
+el panel seguía clickeable en su posición original (esquina inferior derecha),
+pudiendo tapar toques reales en mobile si coincidían en pantalla — fue la
+causa de un reporte real de "el botón Cortar no responde" en Android.
+Verificado con `document.elementFromPoint()` que ahora el click llega limpio
+a nuestro botón.
+
+## Auto-start y botón de cortar (sin depender de texto exacto)
+
+Al elegir una tab, la llamada arranca sola — no hace falta un segundo click.
+Esta versión del widget (`0.20.0`) **no expone un método JS** tipo
+`widget.startConversation()` / `endConversation()` en el elemento (se probó,
+el prototipo solo tiene los callbacks del custom element). El único gancho
+real son los botones internos dentro del shadow DOM.
+
+**Botón de iniciar** (`autoStartConversation()`): se busca por una lista corta
+de aria-labels conocidos (`CALL_BUTTON_LABELS`) — en todos los agentes
+probados coincide bien (`"Iniciar llamada"` o el default `"Start a call"`).
+Si no aparece todavía (shadow DOM sin poblar), reintenta cada 200ms hasta 8
+veces, revelando el panel con el botón de expandir si hace falta.
+
+**Botón de cortar** (`findEndCallButton()`): su etiqueta varía demasiado para
+confiar en una lista fija (vimos `"Cortar"`, `"Finalizar"`, `"End call"`,
+`"End"` a secas — cada agente puede usar un default de i18n distinto). La
+detección real es por **descarte**: de los 4 botones que tiene el panel en
+llamada (adjuntar, cortar, enviar, colapsar), se excluyen los 3 que sí se
+identifican bien por label (`OTHER_PANEL_BUTTON_LABELS`) y lo que sobra es el
+de cortar. Mismo criterio para saber si la llamada **sigue viva**: en vez de
+confiar en la etiqueta de cortar, se poll-ea la *reaparición* del botón de
+iniciar (señal confiable) — cuando vuelve a aparecer, la llamada terminó (sola
+o porque el usuario cortó) y se resetea todo.
+
+**Si tras actualizar `@elevenlabs/convai-widget-embed` algo de esto deja de
+funcionar:** inspeccionar `widget.shadowRoot.querySelectorAll('button')` en
+DevTools durante una llamada activa para ver qué `aria-label`s aparecen ahora,
+y ajustar `CALL_BUTTON_LABELS` / `OTHER_PANEL_BUTTON_LABELS` en `script.js`.
+Si ElevenLabs termina exponiendo `startConversation()`/`endConversation()`
+como métodos públicos en una versión futura, usar eso en vez de buscar
+botones — es la vía documentada y no depende de la estructura interna.
+
+## Caché en producción (desa-lab.online)
+
+El deploy real (ver `voicebot_demo.md` en Obsidian) usa nginx + Cloudflare. Por
+default, cuando el origen (nginx) no manda su propio `Cache-Control`,
+Cloudflare le aplica el "Browser Cache TTL" de la zona (4 horas en
+`desa-lab.online`) — un visitante que ya cargó el sitio puede seguir viendo JS
+viejo en su navegador por horas después de un deploy, **aunque se purgue la
+caché de Cloudflare** (el purge solo limpia el edge de Cloudflare, no el
+navegador del visitante). Esto pasó de verdad: alguien probó el sitio en el
+celu y vio comportamiento viejo pese a un purge reciente.
+
+Dos capas de fix, las dos ya aplicadas:
+1. **nginx** (`/home/alteor/stacks/voicebot-demo/nginx.conf` en el servidor,
+   no versionado en este repo) manda `Cache-Control: no-cache, must-revalidate`
+   en todas las respuestas — el navegador revalida con ETag en cada visita
+   (rápido, sigue sirviendo del caché si no cambió, pero nunca sirve algo
+   stale por horas).
+2. **Cache Rule de Cloudflare** (`voicebot-demo no-cache`, scope
+   `http.host eq "voicebot-demo.desa-lab.online"`) fuerza
+   `max-age=0, no-cache` en la respuesta — sin esto, Cloudflare pisa el header
+   de nginx con su propio Browser Cache TTL de zona igual. Está scopeado solo
+   a este subdominio para no afectar el caching de `crm.`/`vault.` en la
+   misma zona.
+
+**Al deployar un cambio:** alcanza con `git pull` en el servidor — no hace
+falta purgar Cloudflare a mano para que los visitantes vean el cambio (el
+`no-cache` ya fuerza revalidación), pero no está de más purgar igual para que
+el próximo `curl`/chequeo manual no muestre una respuesta vieja del edge.
 
 ## Deploy
 

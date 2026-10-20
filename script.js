@@ -74,12 +74,12 @@
   const CALL_BUTTON_LABELS = [WIDGET_SKIN["start-call-text"], "Start a call"];
   const EXPAND_BUTTON_LABELS = [WIDGET_SKIN["expand-text"], "Expand widget", "Expand"];
   // La etiqueta del botón de cortar varía bastante entre agentes — vimos
-  // "Cortar" (el que configuramos), "End call" (default en inglés) y
-  // "Finalizar" (default en español de algunos agentes, no toma nuestro
-  // end-call-text). Se agregan variantes conocidas como atajo rápido, pero
-  // la detección real no depende de adivinar el texto exacto (ver
-  // findEndCallButton más abajo).
-  const END_CALL_LABELS = [WIDGET_SKIN["end-call-text"], "End call", "Finalizar", "Terminar llamada", "Colgar", "Hang up"];
+  // "Cortar" (el que configuramos), "End call" y "End" (defaults en inglés,
+  // Alteor usa justo "End" solo) y "Finalizar" (default en español de otros
+  // agentes, no toma nuestro end-call-text). Se agregan variantes conocidas
+  // como atajo rápido, pero la detección real no depende de adivinar el
+  // texto exacto (ver findEndCallButton más abajo).
+  const END_CALL_LABELS = [WIDGET_SKIN["end-call-text"], "End call", "End", "Finalizar", "Terminar llamada", "Colgar", "Hang up"];
   // Etiquetas de los OTROS botones del panel en llamada (adjuntar, enviar,
   // colapsar), en inglés y en el default en español que usa el widget
   // cuando no toma nuestros atributos (vimos "Contraer", no "Cerrar" que
