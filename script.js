@@ -36,12 +36,33 @@
   const mount = document.getElementById("widget-mount");
   if (!tabs.length || !mount) return;
 
+  // Skin de marca GCS para el widget: mismo violeta del acento del sitio
+  // (ver --accent / --accent-soft en styles.css) y textos en español rioplatense.
+  // Atributos documentados por ElevenLabs — no son hacks de CSS, son la vía
+  // oficial de personalización del widget (ver README).
+  const WIDGET_SKIN = {
+    "avatar-orb-color-1": "#7c5cff",
+    "avatar-orb-color-2": "#2f3bff",
+    "disable-banner": "",
+    dismissible: "",
+    "action-text": "Hablar con el agente",
+    "start-call-text": "Iniciar llamada",
+    "end-call-text": "Cortar",
+    "expand-text": "Abrir",
+    "collapse-text": "Cerrar",
+    "listening-text": "Escuchando…",
+    "speaking-text": "Hablando…",
+  };
+
   function mountAgent(agentId) {
     mount.classList.add("is-switching");
     window.setTimeout(() => {
       mount.innerHTML = "";
       const widget = document.createElement("elevenlabs-convai");
       widget.setAttribute("agent-id", agentId);
+      Object.entries(WIDGET_SKIN).forEach(([attr, value]) => {
+        widget.setAttribute(attr, value);
+      });
       mount.appendChild(widget);
       mount.classList.remove("is-switching");
     }, 150);

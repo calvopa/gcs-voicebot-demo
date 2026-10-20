@@ -37,30 +37,34 @@ hace falta tocar `script.js`, lee esos atributos directamente.
 según la versión del panel). Si no está deshabilitada, el widget público no va a poder
 conectarse desde esta página sin backend.
 
-## Ocultar el branding "Powered by ElevenLabs"
+## Skin del widget (colores, textos, branding)
 
-El código de `styles.css` intenta esconder el badge vía `::part()`:
+El widget vive en shadow DOM — no es estilable con CSS normal ni con `::part()`
+(ElevenLabs no expone partes internas en la versión `0.20.0`). Probamos forzar
+`position: relative` por CSS para que el panel de conversación fluya dentro de
+la tarjeta en vez de flotar como burbuja fija: **rompe el panel expandido**
+(queda clippeado a una barra de unos pocos píxeles) — no lo usamos en producción
+por eso. La personalización real pasa por los **atributos documentados del
+elemento**, seteados en `script.js` → objeto `WIDGET_SKIN`, aplicados a cada
+`<elevenlabs-convai>` al montarlo:
 
-```css
-elevenlabs-convai::part(badge),
-elevenlabs-convai::part(watermark),
-elevenlabs-convai::part(powered-by) {
-  display: none !important;
-}
-```
+| Atributo | Qué hace | Valor usado acá |
+|---|---|---|
+| `avatar-orb-color-1` / `-2` | Gradiente del orbe del agente | `#7c5cff` / `#2f3bff` (el mismo violeta del sitio) |
+| `disable-banner` | Saca el "Powered by ElevenLabs" | presente (sin valor) |
+| `dismissible` | Deja minimizar el widget | presente (sin valor) |
+| `action-text`, `start-call-text`, `end-call-text`, `expand-text`, `collapse-text`, `listening-text`, `speaking-text` | Textos del widget | traducidos a español rioplatense |
 
-**Esto es best-effort.** El widget vive en shadow DOM y ElevenLabs no garantiza
-que esas partes estén expuestas ni que los nombres (`badge`, `watermark`,
-`powered-by`) coincidan con los reales — hay que inspeccionar el DOM renderizado
-del widget en el navegador (DevTools → buscar `::part` o atributos `part=` dentro
-del shadow root) y ajustar los selectores si hace falta.
+Esto **reemplaza** el intento anterior con `::part()` en `styles.css` (no
+funcionaba — quedaba documentado acá por si en una versión futura del widget
+ElevenLabs expone partes reales). Para cambiar colores o textos, editá
+`WIDGET_SKIN` en `script.js` — se aplica a los 3 agentes por igual.
 
-**La vía confiable** es la que ofrece ElevenLabs desde su plataforma: en planes
-pagos (a partir de Business/Scale según el momento en que lo estés leyendo) hay
-una opción para quitar el badge "Powered by ElevenLabs" desde la configuración
-del workspace o del agente. Si tu plan no la tiene habilitada, **esto queda
-pendiente de resolver por ese lado** — no es un bug de esta página, es una
-limitación del plan.
+**Lo que no se puede customizar:** el fondo, tipografía y layout del panel
+interno del widget (chrome propio de ElevenLabs, no configurable desde afuera
+del shadow DOM). El widget siempre aparece como burbuja flotante fija en una
+esquina — no hay forma soportada de embeberlo inline en el flujo de la página
+sin romper su funcionamiento.
 
 ## Deploy
 

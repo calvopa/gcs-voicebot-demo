@@ -250,13 +250,10 @@ a { color: inherit; text-decoration: none; }
   color: var(--text-faint);
 }
 
-/* Intenta esconder el branding del widget si el shadow DOM lo expone via ::part().
-   Ver README: la via confiable es desactivarlo desde el panel de ElevenLabs. */
-elevenlabs-convai::part(badge),
-elevenlabs-convai::part(watermark),
-elevenlabs-convai::part(powered-by) {
-  display: none !important;
-}
+/* El branding "Powered by ElevenLabs" y el color del orbe se configuran vía
+   atributos del elemento (disable-banner, avatar-orb-color-1/2), seteados en
+   script.js al montar cada widget — no por CSS, el shadow DOM no es estilable
+   desde afuera. Ver README. */
 
 /* ---------- Timeline ---------- */
 .timeline {
