@@ -72,10 +72,19 @@
         <!--
           El <elevenlabs-convai> se crea y destruye dinámicamente desde script.js
           según la tab activa — nunca hay más de un widget montado a la vez.
+          Se mantiene oculto (ver styles.css): la ventana propia de ElevenLabs
+          no se muestra, en su lugar usamos el indicador #call-status de acá
+          abajo, que refleja el estado real de la llamada.
           Cada agente tiene que tener la autenticación deshabilitada en ElevenLabs
           (panel → Advanced) para poder usarse público, sin backend.
         -->
         <div class="widget-mount" id="widget-mount"></div>
+
+        <div class="call-status" id="call-status" hidden>
+          <span class="call-status__dot" aria-hidden="true"></span>
+          <p class="call-status__text" id="call-status-text">Conectando…</p>
+          <button class="call-status__end" id="call-status-end" type="button">Cortar</button>
+        </div>
 
         <p class="widget-card__foot">🔴 En vivo — es una IA real respondiendo, no un bot pregrabado.</p>
       </div>

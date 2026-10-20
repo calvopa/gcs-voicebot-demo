@@ -73,6 +73,27 @@
   //   3. Si no encuentra nada todavía (shadow DOM sin poblar), reintenta.
   const CALL_BUTTON_LABELS = [WIDGET_SKIN["start-call-text"], "Start a call"];
   const EXPAND_BUTTON_LABELS = [WIDGET_SKIN["expand-text"], "Expand widget", "Expand"];
+  // La etiqueta del botón de cortar varía bastante entre agentes — vimos
+  // "Cortar" (el que configuramos), "End call" (default en inglés) y
+  // "Finalizar" (default en español de algunos agentes, no toma nuestro
+  // end-call-text). Se agregan variantes conocidas; igual NO es la señal
+  // principal para detectar fin de llamada (ver startStatusPolling).
+  const END_CALL_LABELS = [WIDGET_SKIN["end-call-text"], "End call", "Finalizar", "Terminar llamada", "Colgar", "Hang up"];
+
+  // El widget en sí queda oculto (ver styles.css) — este mapa traduce los
+  // textos de estado que muestra internamente a lo que mostramos en nuestro
+  // propio indicador (#call-status). Cubre el texto configurado y el default
+  // en inglés, por si el agente no lo toma (mismo problema que con los botones).
+  const STATUS_TEXT_MAP = {
+    Connecting: "Conectando…",
+    Conectando: "Conectando…",
+    [WIDGET_SKIN["listening-text"]]: "Escuchando…",
+    Listening: "Escuchando…",
+    [WIDGET_SKIN["speaking-text"]]: "Hablando…",
+    Speaking: "Hablando…",
+    "Habla para interrumpir": "Escuchando — hablá cuando quieras",
+    "Talk to interrupt": "Escuchando — hablá cuando quieras",
+  };
 
   function findButtonByLabel(root, labels) {
     const buttons = Array.from(root.querySelectorAll("button"));
@@ -89,6 +110,7 @@
     const callBtn = findButtonByLabel(root, CALL_BUTTON_LABELS);
     if (callBtn) {
       callBtn.click();
+      startStatusPolling(widget);
       return;
     }
 
@@ -98,6 +120,76 @@
     if (attemptsLeft > 0) {
       window.setTimeout(() => autoStartConversation(widget, attemptsLeft - 1), 200);
     }
+  }
+
+  // El widget real queda invisible (styles.css lo manda fuera de pantalla),
+  // así que este panel hecho a mano es lo único que la persona ve del estado
+  // de la llamada. Mientras esté activa, cada 400ms se fija si el botón de
+  // cortar sigue existiendo (= la llamada sigue viva) y copia el texto de
+  // estado que el widget muestra internamente, traducido via STATUS_TEXT_MAP.
+  // Cuando el botón de cortar desaparece, la llamada terminó (sola o porque
+  // el agente la cerró) — se desmonta todo y se vuelve al estado inicial.
+  const statusPanel = document.getElementById("call-status");
+  const statusText = document.getElementById("call-status-text");
+  const statusEndBtn = document.getElementById("call-status-end");
+  let statusPollId = null;
+
+  function stopStatusPolling() {
+    if (statusPollId) {
+      window.clearInterval(statusPollId);
+      statusPollId = null;
+    }
+    statusPanel.hidden = true;
+  }
+
+  function findStatusLabel(root) {
+    const candidates = root.querySelectorAll("p, span");
+    for (const el of candidates) {
+      const t = el.textContent.trim();
+      if (STATUS_TEXT_MAP[t]) return STATUS_TEXT_MAP[t];
+    }
+    return null;
+  }
+
+  function startStatusPolling(widget) {
+    statusPanel.hidden = false;
+    statusText.textContent = "Conectando…";
+
+    statusEndBtn.onclick = () => {
+      const root = widget.shadowRoot;
+      const endBtn = root && findButtonByLabel(root, END_CALL_LABELS);
+      if (endBtn) endBtn.click();
+    };
+
+    // La etiqueta del botón de cortar varía demasiado entre agentes para
+    // usarla como señal de "la llamada sigue viva" (ver END_CALL_LABELS).
+    // La señal confiable es la inversa: el botón de INICIAR, que sabemos
+    // que detectamos bien (es el mismo que usó autoStartConversation para
+    // arrancar), reaparece cuando la llamada termina y el widget vuelve al
+    // estado previo a la llamada. Mientras no reaparezca, seguimos en
+    // llamada — tratamos de reflejar el texto de estado si lo encontramos,
+    // pero su ausencia no corta nada.
+    statusPollId = window.setInterval(() => {
+      const root = widget.shadowRoot;
+      if (!root) return;
+
+      const startBtnBack = findButtonByLabel(root, CALL_BUTTON_LABELS);
+      if (startBtnBack) {
+        // La llamada terminó (sola, o la cortamos nosotros): volvemos al
+        // estado inicial, sin tab seleccionada.
+        stopStatusPolling();
+        unmountAgent();
+        tabs.forEach((t) => {
+          t.classList.remove("is-active");
+          t.setAttribute("aria-selected", "false");
+        });
+        hasStarted = false;
+        return;
+      }
+
+      const label = findStatusLabel(root);
+      if (label) statusText.textContent = label;
+    }, 400);
   }
 
   function mountAgent(agentId, autoStart) {
@@ -118,6 +210,7 @@
   }
 
   function unmountAgent() {
+    stopStatusPolling();
     mount.innerHTML = "";
   }
 
@@ -134,6 +227,7 @@
     });
     tab.classList.add("is-active");
     tab.setAttribute("aria-selected", "true");
+    stopStatusPolling();
     currentAgentId = tab.dataset.agentId;
     hasStarted = true;
     mountAgent(currentAgentId, true);
@@ -143,11 +237,10 @@
     tab.addEventListener("click", () => selectTab(tab));
   });
 
-  // El widget de ElevenLabs flota fijo en una esquina y, una vez montado,
-  // queda visible en TODA la página (no solo cerca de la tarjeta de demo).
-  // Para que no persiga al usuario por el resto del sitio, se desmonta en
-  // cuanto la sección del selector sale de pantalla (no se automonta al
-  // entrar — eso requiere un click explícito en una tab).
+  // El widget real queda oculto siempre (ver styles.css), pero si el usuario
+  // scrollea lejos de la sección con una llamada en curso, igual la cortamos
+  // y reseteamos todo — no tiene sentido mantenerla viva sin que se la pueda
+  // ver ni cortar desde la pantalla.
   const widgetSection = document.getElementById("widget");
   if (widgetSection && "IntersectionObserver" in window) {
     const observer = new IntersectionObserver(
