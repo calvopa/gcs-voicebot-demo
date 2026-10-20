@@ -98,9 +98,11 @@
     mount.innerHTML = "";
   }
 
-  const initialTab = document.querySelector(".agent-tab.is-active") || tabs[0];
-  let currentAgentId = initialTab.dataset.agentId;
-  let isWidgetVisible = false;
+  // Ninguna tab viene preseleccionada: no se monta ni se muestra ningún
+  // widget hasta que el usuario elija un agente a propósito. Así no aparece
+  // la burbuja de ElevenLabs sola con solo scrollear hasta la sección.
+  let currentAgentId = null;
+  let hasStarted = false;
 
   function selectTab(tab) {
     tabs.forEach((t) => {
@@ -110,39 +112,36 @@
     tab.classList.add("is-active");
     tab.setAttribute("aria-selected", "true");
     currentAgentId = tab.dataset.agentId;
-    if (isWidgetVisible) mountAgent(currentAgentId, true);
+    hasStarted = true;
+    mountAgent(currentAgentId, true);
   }
 
   tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      if (tab.classList.contains("is-active")) return;
-      selectTab(tab);
-    });
+    tab.addEventListener("click", () => selectTab(tab));
   });
 
   // El widget de ElevenLabs flota fijo en una esquina y, una vez montado,
   // queda visible en TODA la página (no solo cerca de la tarjeta de demo).
-  // Para que no persiga al usuario por el resto del sitio, se monta recién
-  // cuando la sección del selector entra en pantalla y se desmonta al salir.
+  // Para que no persiga al usuario por el resto del sitio, se desmonta en
+  // cuanto la sección del selector sale de pantalla (no se automonta al
+  // entrar — eso requiere un click explícito en una tab).
   const widgetSection = document.getElementById("widget");
   if (widgetSection && "IntersectionObserver" in window) {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          isWidgetVisible = entry.isIntersecting;
-          if (entry.isIntersecting) {
-            mountAgent(currentAgentId);
-          } else {
+          if (!entry.isIntersecting && hasStarted) {
             unmountAgent();
+            hasStarted = false;
+            tabs.forEach((t) => {
+              t.classList.remove("is-active");
+              t.setAttribute("aria-selected", "false");
+            });
           }
         });
       },
       { threshold: 0.15 }
     );
     observer.observe(widgetSection);
-  } else {
-    // Sin soporte de IntersectionObserver: fallback al comportamiento anterior.
-    isWidgetVisible = true;
-    mountAgent(currentAgentId);
   }
 })();
