@@ -58,20 +58,43 @@
   // obligar a un segundo click en el botón propio del widget ("Iniciar llamada").
   // Esta versión del widget (0.20.0) no expone un método JS tipo
   // startConversation() en el elemento — el único gancho real es su botón
-  // interno dentro del shadow DOM. Buscarlo por aria-label/texto es frágil:
-  // algunos agentes no toman el start-call-text seteado (quedan en inglés,
-  // "Start a call"), así que usamos el primer <button> del panel — en todos
-  // los agentes probados es siempre el de iniciar la llamada, antes del de
-  // mensaje de texto. El shadow DOM tarda un toque en poblarse tras montar
-  // el widget, así que reintenta unas cuantas veces antes de rendirse (si
-  // falla, el usuario igual puede arrancar la llamada a mano).
+  // interno dentro del shadow DOM.
+  //
+  // No alcanza con "el primer <button>": con variant="tiny" el widget arranca
+  // colapsado y el primer botón es el de expandir, no el de llamar (con
+  // variant="full" el primer botón SÍ es el de llamar — rompimos esto una vez
+  // al cambiar de variant). Tampoco alcanza con buscar por aria-label exacto:
+  // algunos agentes no toman el start-call-text/expand-text seteado y quedan
+  // en inglés ("Start a call" / "Expand widget"). Por eso buscamos por una
+  // lista de textos candidatos (el nuestro + el default en inglés):
+  //   1. Si encuentra el botón de llamar → click y listo.
+  //   2. Si no, pero encuentra el de expandir → click (revela el de llamar)
+  //      y reintenta la búsqueda completa.
+  //   3. Si no encuentra nada todavía (shadow DOM sin poblar), reintenta.
+  const CALL_BUTTON_LABELS = [WIDGET_SKIN["start-call-text"], "Start a call"];
+  const EXPAND_BUTTON_LABELS = [WIDGET_SKIN["expand-text"], "Expand widget", "Expand"];
+
+  function findButtonByLabel(root, labels) {
+    const buttons = Array.from(root.querySelectorAll("button"));
+    return buttons.find((b) => labels.includes(b.getAttribute("aria-label")));
+  }
+
   function autoStartConversation(widget, attemptsLeft) {
     const root = widget.shadowRoot;
-    const btn = root && root.querySelector("button");
-    if (btn) {
-      btn.click();
+    if (!root) {
+      if (attemptsLeft > 0) window.setTimeout(() => autoStartConversation(widget, attemptsLeft - 1), 200);
       return;
     }
+
+    const callBtn = findButtonByLabel(root, CALL_BUTTON_LABELS);
+    if (callBtn) {
+      callBtn.click();
+      return;
+    }
+
+    const expandBtn = findButtonByLabel(root, EXPAND_BUTTON_LABELS);
+    if (expandBtn) expandBtn.click();
+
     if (attemptsLeft > 0) {
       window.setTimeout(() => autoStartConversation(widget, attemptsLeft - 1), 200);
     }
@@ -89,7 +112,7 @@
       mount.appendChild(widget);
       mount.classList.remove("is-switching");
       if (autoStart) {
-        window.setTimeout(() => autoStartConversation(widget, 5), 200);
+        window.setTimeout(() => autoStartConversation(widget, 8), 200);
       }
     }, 150);
   }
