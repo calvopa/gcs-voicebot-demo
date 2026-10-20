@@ -532,6 +532,45 @@ a { color: inherit; text-decoration: none; }
   font-size: 0.92rem;
 }
 
+/* ---------- Clients ---------- */
+.clients {
+  padding: 2rem 1.25rem 4rem;
+  max-width: var(--max-w);
+  margin: 0 auto;
+}
+
+.clients__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .clients__grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+.clients__grid img {
+  background: var(--bg-elevated);
+  width: 100%;
+  height: 84px;
+  object-fit: contain;
+  padding: 1.1rem 1.4rem;
+  /* Logos a color solo con el acento de marca (grayscale + sepia + hue-rotate
+     aproxima un duotono con el verde institucional) para que la grilla se
+     sienta parte del diseño y no un collage de marcas ajenas; el hover
+     revela el logo real a color. */
+  filter: grayscale(1) opacity(0.55);
+  transition: filter 0.2s ease;
+}
+
+.clients__grid img:hover {
+  filter: grayscale(0) opacity(1);
+}
+
 /* ---------- Final CTA ---------- */
 .final-cta {
   text-align: center;
