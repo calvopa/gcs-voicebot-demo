@@ -76,24 +76,58 @@
   // La etiqueta del botón de cortar varía bastante entre agentes — vimos
   // "Cortar" (el que configuramos), "End call" (default en inglés) y
   // "Finalizar" (default en español de algunos agentes, no toma nuestro
-  // end-call-text). Se agregan variantes conocidas; igual NO es la señal
-  // principal para detectar fin de llamada (ver startStatusPolling).
+  // end-call-text). Se agregan variantes conocidas como atajo rápido, pero
+  // la detección real no depende de adivinar el texto exacto (ver
+  // findEndCallButton más abajo).
   const END_CALL_LABELS = [WIDGET_SKIN["end-call-text"], "End call", "Finalizar", "Terminar llamada", "Colgar", "Hang up"];
+  // Etiquetas de los OTROS botones del panel en llamada (adjuntar, enviar,
+  // colapsar), en inglés y en el default en español que usa el widget
+  // cuando no toma nuestros atributos (vimos "Contraer", no "Cerrar" que
+  // configuramos). Sirven para encontrar el botón de cortar por descarte
+  // cuando no coincide con ningún texto conocido — más robusto que intentar
+  // adivinar cada variante de idioma/dispositivo una por una.
+  const OTHER_PANEL_BUTTON_LABELS = [
+    "Adjuntar archivo",
+    "Attach file",
+    "Enviar",
+    "Send",
+    WIDGET_SKIN["collapse-text"],
+    "Contraer",
+    "Collapse",
+  ];
 
-  // El widget en sí queda oculto (ver styles.css) — este mapa traduce los
+  // Encuentra el botón de cortar sin depender de adivinar su texto exacto:
+  // primero prueba las etiquetas conocidas (rápido), y si ninguna matchea,
+  // asume que cualquier botón visible que no sea el de adjuntar/enviar/
+  // colapsar (los únicos otros botones del panel en llamada) es el de
+  // cortar. Solo tiene sentido buscarlo cuando la llamada está activa (el
+  // botón de iniciar ya no está), así que lo llama siempre junto a esa
+  // condición.
+  function findEndCallButton(root) {
+    const known = findButtonByLabel(root, END_CALL_LABELS);
+    if (known) return known;
+    const buttons = Array.from(root.querySelectorAll("button"));
+    return buttons.find((b) => !OTHER_PANEL_BUTTON_LABELS.includes(b.getAttribute("aria-label")));
+  }
+
+  // El widget en sí queda oculto (ver styles.css) — este array traduce los
   // textos de estado que muestra internamente a lo que mostramos en nuestro
-  // propio indicador (#call-status). Cubre el texto configurado y el default
-  // en inglés, por si el agente no lo toma (mismo problema que con los botones).
-  const STATUS_TEXT_MAP = {
-    Connecting: "Conectando…",
-    Conectando: "Conectando…",
-    [WIDGET_SKIN["listening-text"]]: "Escuchando…",
-    Listening: "Escuchando…",
-    [WIDGET_SKIN["speaking-text"]]: "Hablando…",
-    Speaking: "Hablando…",
-    "Habla para interrumpir": "Escuchando — hablá cuando quieras",
-    "Talk to interrupt": "Escuchando — hablá cuando quieras",
-  };
+  // propio indicador (#call-status). Match por PREFIJO, no exacto: vimos que
+  // el default del widget es "Escuchando" sin puntos suspensivos, mientras
+  // que nuestro listening-text configurado es "Escuchando…" — con match
+  // exacto nunca coincidía y el indicador quedaba pegado en "Conectando…"
+  // aunque la llamada ya estuviera conectada y funcionando (confundía,
+  // parecía que la página estaba colgada).
+  const STATUS_TEXT_PREFIXES = [
+    ["Conectando", "Conectando…"],
+    ["Connecting", "Conectando…"],
+    ["Escuchando", "Escuchando…"],
+    ["Listening", "Escuchando…"],
+    ["Hablando", "Hablando…"],
+    ["Speaking", "Hablando…"],
+    ["Habla para interrumpir", "Escuchando — hablá cuando quieras"],
+    ["Talk to interrupt", "Escuchando — hablá cuando quieras"],
+  ];
 
   function findButtonByLabel(root, labels) {
     const buttons = Array.from(root.querySelectorAll("button"));
@@ -126,7 +160,7 @@
   // así que este panel hecho a mano es lo único que la persona ve del estado
   // de la llamada. Mientras esté activa, cada 400ms se fija si el botón de
   // cortar sigue existiendo (= la llamada sigue viva) y copia el texto de
-  // estado que el widget muestra internamente, traducido via STATUS_TEXT_MAP.
+  // estado que el widget muestra internamente, traducido via STATUS_TEXT_PREFIXES.
   // Cuando el botón de cortar desaparece, la llamada terminó (sola o porque
   // el agente la cerró) — se desmonta todo y se vuelve al estado inicial.
   const statusPanel = document.getElementById("call-status");
@@ -143,10 +177,12 @@
   }
 
   function findStatusLabel(root) {
-    const candidates = root.querySelectorAll("p, span");
+    const candidates = root.querySelectorAll("p, span, div");
     for (const el of candidates) {
       const t = el.textContent.trim();
-      if (STATUS_TEXT_MAP[t]) return STATUS_TEXT_MAP[t];
+      if (!t) continue;
+      const match = STATUS_TEXT_PREFIXES.find(([prefix]) => t.startsWith(prefix));
+      if (match) return match[1];
     }
     return null;
   }
@@ -157,7 +193,7 @@
 
     statusEndBtn.onclick = () => {
       const root = widget.shadowRoot;
-      const endBtn = root && findButtonByLabel(root, END_CALL_LABELS);
+      const endBtn = root && findEndCallButton(root);
       if (endBtn) endBtn.click();
     };
 
