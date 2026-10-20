@@ -8,19 +8,63 @@ Stack: HTML + CSS + JS puro. Sin build, sin frameworks.
 
 ## Archivos
 
-- `index.html` — estructura de la página, incluye las tabs de agentes con sus `agent-id`.
+- `index.html` — estructura de la página: tabs de agentes + tarjeta de llamada
+  (`.call-card`: orbe, estado, botón único hablar/cortar).
 - `styles.css` — estilos (dark mode).
-- `script.js` — selector de agentes (monta/desmonta `<elevenlabs-convai>` dinámicamente,
-  arranca la llamada sola al elegir tab) + mensaje de estado del permiso de micrófono.
+- `script.js` — selector de agentes + control de la llamada vía el SDK de
+  ElevenLabs (`@elevenlabs/client`, cargado desde CDN como ES module — por
+  eso `index.html` carga el script con `type="module"`).
+
+## Cómo arranca/corta la llamada
+
+**No usa el widget pre-armado `<elevenlabs-convai>`.** Esa versión anterior
+vivía en shadow DOM y había que "cazar" sus botones internos por aria-label
+para auto-iniciar la llamada, ocultar la ventana visualmente y detectar
+cuándo terminaba — frágil: cada agente usaba etiquetas distintas para los
+mismos botones ("Cortar"/"Finalizar"/"End"), y en mobile el touch no siempre
+llegaba al botón real por el truco de CSS usado para esconder el widget (ver
+historial de commits si hace falta ese contexto completo).
+
+El patrón actual — inspirado directo en **demo.kleva.co** — usa el **SDK de
+JS de ElevenLabs** (`Conversation.startSession()` / `.endSession()`)
+directamente, con un único botón que cambia de estado:
+
+```js
+import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm";
+
+conversation = await Conversation.startSession({
+  agentId: currentAgentId,
+  onConnect: () => { /* arrancó: cambiar a "Finalizar llamada", iniciar timer */ },
+  onDisconnect: () => { /* terminó (sola o por nosotros): volver al estado idle */ },
+  onModeChange: (m) => { /* m.mode === "speaking" | "listening" */ },
+  onError: (err) => { /* mostrar error, volver a idle */ },
+});
+// ...
+await conversation.endSession();
+```
+
+Ventajas sobre el enfoque anterior: cero necesidad de adivinar nada del DOM
+interno de un tercero, `endSession()` es un método real (no un click
+simulado), y el callback `onModeChange` da el estado real de la conversación
+sin tener que leer texto de la pantalla. También resuelve solo el pedido
+original de "nada de branding de ElevenLabs visible" — no hay ninguna UI de
+ElevenLabs en la página, la armamos nosotros entera.
+
+**Permiso de micrófono:** se pide explícito antes de `startSession()` con
+`navigator.mediaDevices.getUserMedia({ audio: true })` (el SDK no lo hace
+solo). Si el usuario lo rechaza, el `catch` deja el botón disponible para
+reintentar y actualiza el hint.
+
+**Requiere que `index.html` cargue `script.js` con `type="module"`** (el
+import del SDK es ESM) — si se edita el script tag, no sacar ese atributo.
 
 ## Selector de agentes (demos en vivo)
 
-La página tiene tabs, cada una con su propio agente de ElevenLabs. Solo hay un
-`<elevenlabs-convai>` montado en el DOM a la vez — `script.js` lo destruye y crea uno
-nuevo al cambiar de tab, así no quedan varios widgets conectados en paralelo (consumiría
-recursos y pediría/mantendría el micrófono de más). Al elegir una tab, la llamada arranca
-sola (ver sección "Auto-start de la llamada" más abajo) — no hace falta un segundo click
-en el botón propio del widget.
+La página tiene tabs, cada una con su propio agente de ElevenLabs. Elegir una
+tab solo selecciona el agente y habilita el botón ("Hablar con RRHH" /
+"Hablar con Alteor") — la llamada arranca recién al tocar ese botón, no sola.
+Si había una llamada activa con otro agente y cambiás de tab, se corta antes
+de seleccionar el nuevo.
 
 Agentes configurados en `index.html` (atributo `data-agent-id` de cada `.agent-tab`):
 
@@ -50,95 +94,19 @@ hace falta tocar `script.js`, lee esos atributos directamente.
 según la versión del panel). Si no está deshabilitada, el widget público no va a poder
 conectarse desde esta página sin backend.
 
-## Skin del widget (colores, textos, branding)
+## Personalización visual (orbe, botón, branding)
 
-El widget vive en shadow DOM — no es estilable con CSS normal ni con `::part()`
-(ElevenLabs no expone partes internas en la versión `0.20.0`). La
-personalización pasa por los **atributos documentados del elemento**, seteados
-en `script.js` → objeto `WIDGET_SKIN`, aplicados a cada `<elevenlabs-convai>`
-al montarlo:
+Como ya no se usa el widget de ElevenLabs, la skin es 100% nuestra —
+`.call-card__orb`, `.call-card__btn`, etc. en `styles.css`, sin ningún límite
+de shadow DOM ni atributos ajenos que adivinar. El orbe es un gradiente
+cónico animado (violeta, igual al acento del sitio) que gira más rápido y
+brilla cuando hay una llamada activa (`.is-live`). El botón cambia de color
+(violeta → rojo) y texto (`Hablar con X` → `Finalizar llamada`) según el
+estado — ver `setIdleUI()` en `script.js`.
 
-| Atributo | Qué hace | Valor usado acá |
-|---|---|---|
-| `avatar-orb-color-1` / `-2` | Gradiente del orbe del agente | `#7c5cff` / `#2f3bff` (el mismo violeta del sitio) |
-| `disable-banner` | Saca el "Powered by ElevenLabs" | presente (sin valor) |
-| `dismissible` | Deja minimizar el widget | presente (sin valor) |
-| `action-text`, `start-call-text`, `end-call-text`, `expand-text`, `collapse-text`, `listening-text`, `speaking-text` | Textos del widget | traducidos a español rioplatense |
-
-**Ojo:** varios agentes NO toman estos textos — usan sus propios defaults de
-i18n según el idioma configurado del agente, no nuestros atributos. Vimos el
-botón de cortar como "Cortar" (el nuestro), "Finalizar" y "End" en distintos
-agentes; el de colapsar como "Contraer" en vez del "Cerrar" que configuramos.
-Por eso `script.js` nunca depende de un texto exacto para encontrar botones
-(ver "Auto-start" y "Viewport del widget" más abajo) — solo lo usa como atajo
-rápido antes de caer a detección por descarte.
-
-Para cambiar colores o textos, editá `WIDGET_SKIN` en `script.js` — se aplica
-a todos los agentes por igual (aunque no todos lo respeten).
-
-## El widget queda completamente oculto — indicador propio
-
-La ventana nativa de ElevenLabs (burbuja flotante, panel de conversación) **no
-se muestra nunca**, ni siquiera durante la llamada. En su lugar hay un
-indicador armado a mano en `index.html` (`#call-status`) con texto de estado y
-botón "Cortar" real, manejado por `startStatusPolling()` en `script.js`.
-
-**Por qué está oculto así:** el panel visible del widget vive *dentro* del
-shadow DOM con su propio `position: fixed` anclado al viewport — no sigue la
-posición del host (`<elevenlabs-convai>`), así que mover el host con left/top
-no lo mueve. Probamos `position: relative` en el host para que fluya inline:
-rompe el panel expandido (queda clippeado a unos pocos píxeles). La solución
-que quedó en `styles.css`:
-
-```css
-.widget-mount elevenlabs-convai {
-  position: fixed; left: 0; top: 0; width: 0; height: 0; overflow: hidden;
-  transform: scale(0.0001); opacity: 0; pointer-events: none;
-}
-```
-
-`transform` crea un *containing block* para los descendientes `position:fixed`
-de todo el árbol — shadow DOM incluido, es una regla normal de CSS, no la
-esquiva el shadow boundary — así el panel interno queda atrapado en una caja
-de 0px en vez de anclado al viewport. Sin esto, `opacity:0` solo no alcanza:
-el panel seguía clickeable en su posición original (esquina inferior derecha),
-pudiendo tapar toques reales en mobile si coincidían en pantalla — fue la
-causa de un reporte real de "el botón Cortar no responde" en Android.
-Verificado con `document.elementFromPoint()` que ahora el click llega limpio
-a nuestro botón.
-
-## Auto-start y botón de cortar (sin depender de texto exacto)
-
-Al elegir una tab, la llamada arranca sola — no hace falta un segundo click.
-Esta versión del widget (`0.20.0`) **no expone un método JS** tipo
-`widget.startConversation()` / `endConversation()` en el elemento (se probó,
-el prototipo solo tiene los callbacks del custom element). El único gancho
-real son los botones internos dentro del shadow DOM.
-
-**Botón de iniciar** (`autoStartConversation()`): se busca por una lista corta
-de aria-labels conocidos (`CALL_BUTTON_LABELS`) — en todos los agentes
-probados coincide bien (`"Iniciar llamada"` o el default `"Start a call"`).
-Si no aparece todavía (shadow DOM sin poblar), reintenta cada 200ms hasta 8
-veces, revelando el panel con el botón de expandir si hace falta.
-
-**Botón de cortar** (`findEndCallButton()`): su etiqueta varía demasiado para
-confiar en una lista fija (vimos `"Cortar"`, `"Finalizar"`, `"End call"`,
-`"End"` a secas — cada agente puede usar un default de i18n distinto). La
-detección real es por **descarte**: de los 4 botones que tiene el panel en
-llamada (adjuntar, cortar, enviar, colapsar), se excluyen los 3 que sí se
-identifican bien por label (`OTHER_PANEL_BUTTON_LABELS`) y lo que sobra es el
-de cortar. Mismo criterio para saber si la llamada **sigue viva**: en vez de
-confiar en la etiqueta de cortar, se poll-ea la *reaparición* del botón de
-iniciar (señal confiable) — cuando vuelve a aparecer, la llamada terminó (sola
-o porque el usuario cortó) y se resetea todo.
-
-**Si tras actualizar `@elevenlabs/convai-widget-embed` algo de esto deja de
-funcionar:** inspeccionar `widget.shadowRoot.querySelectorAll('button')` en
-DevTools durante una llamada activa para ver qué `aria-label`s aparecen ahora,
-y ajustar `CALL_BUTTON_LABELS` / `OTHER_PANEL_BUTTON_LABELS` en `script.js`.
-Si ElevenLabs termina exponiendo `startConversation()`/`endConversation()`
-como métodos públicos en una versión futura, usar eso en vez de buscar
-botones — es la vía documentada y no depende de la estructura interna.
+No hay branding de ElevenLabs en ningún lado — no porque lo hayamos ocultado,
+sino porque no hay ninguna UI de ElevenLabs en la página. El pedido original
+de "nada de Powered by ElevenLabs" queda resuelto de raíz.
 
 ## Caché en producción (desa-lab.online)
 
@@ -194,8 +162,14 @@ requiere Node ni proceso corriendo.
 
 ## Notas
 
-- El widget pide permiso de micrófono al usuario; `script.js` solo mejora el
-  texto de ayuda mientras ese permiso no fue otorgado — el manejo real del
-  permiso lo hace el widget de ElevenLabs internamente.
-- Sin librerías externas más allá del script oficial del widget
-  (`@elevenlabs/convai-widget-embed`).
+- `script.js` pide el permiso de micrófono explícitamente
+  (`getUserMedia({ audio: true })`) antes de `Conversation.startSession()` —
+  el SDK no lo hace solo. Si el usuario lo bloquea, el botón vuelve a estar
+  disponible para reintentar y el hint se actualiza.
+- Sin librerías externas más allá del SDK de ElevenLabs
+  (`@elevenlabs/client`, cargado como ES module desde jsdelivr — sin npm,
+  sin build step).
+- Si falla el `import` del CDN (jsdelivr caído, bloqueado por una red
+  corporativa, etc.), la página entera de llamada queda sin funcionar — no
+  hay fallback. Para un sitio de mayor tráfico que este convendría vendorizar
+  el paquete o tener un segundo CDN de respaldo.

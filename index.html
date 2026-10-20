@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GCS Voicebots — Hablá con nuestro agente de IA ahora mismo</title>
 <meta name="description" content="GrupoCESA construye voicebots con IA para empresas. Probá uno en vivo, ahora, desde esta página.">
-<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -42,9 +42,6 @@
       <div class="widget-card__glow" aria-hidden="true"></div>
       <div class="widget-card__inner">
         <h2 class="widget-card__title">Elegí un agente y hablá</h2>
-        <p class="widget-card__hint" id="mic-hint">
-          Tu navegador te va a pedir permiso de micrófono. Aceptalo para que el agente te escuche.
-        </p>
 
         <div class="agent-tabs" role="tablist" aria-label="Elegir agente de demo">
           <button
@@ -52,7 +49,7 @@
             role="tab"
             aria-selected="false"
             data-agent-id="agent_0901kbgae1pse21tqa2b10w5mxs9"
-            data-agent-name="Agente de RRHH"
+            data-agent-name="RRHH"
           >
             <span class="agent-tab__name">RRHH</span>
             <span class="agent-tab__desc">Recursos Humanos</span>
@@ -70,20 +67,27 @@
         </div>
 
         <!--
-          El <elevenlabs-convai> se crea y destruye dinámicamente desde script.js
-          según la tab activa — nunca hay más de un widget montado a la vez.
-          Se mantiene oculto (ver styles.css): la ventana propia de ElevenLabs
-          no se muestra, en su lugar usamos el indicador #call-status de acá
-          abajo, que refleja el estado real de la llamada.
-          Cada agente tiene que tener la autenticación deshabilitada en ElevenLabs
-          (panel → Advanced) para poder usarse público, sin backend.
+          UI propia de llamada — NO usa el widget pre-armado de ElevenLabs
+          (<elevenlabs-convai>), que vive en shadow DOM y obligaba a "cazar"
+          sus botones internos para poder ocultarlo, auto-iniciar la llamada
+          y detectar cuándo terminaba (frágil: cada agente usa etiquetas
+          distintas para los mismos botones). En su lugar, script.js usa el
+          SDK de JS de ElevenLabs (@elevenlabs/client, vía CDN) directamente:
+          Conversation.startSession()/.endSession() con callbacks propios —
+          control total, sin adivinar nada del DOM de un tercero.
         -->
-        <div class="widget-mount" id="widget-mount"></div>
-
-        <div class="call-status" id="call-status" hidden>
-          <span class="call-status__dot" aria-hidden="true"></span>
-          <p class="call-status__text" id="call-status-text">Conectando…</p>
-          <button class="call-status__end" id="call-status-end" type="button">Cortar</button>
+        <div class="call-card">
+          <div class="call-card__orb" id="call-orb" aria-hidden="true"></div>
+          <p class="call-card__status" id="call-status-line">Elegí un agente arriba para empezar</p>
+          <button class="call-card__btn" id="call-toggle" type="button" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.46.57 3.58a1 1 0 0 1-.25 1.01l-2.2 2.2z"/>
+            </svg>
+            <span id="call-toggle-label">Elegí un agente</span>
+          </button>
+          <p class="call-card__hint" id="mic-hint">
+            Tu navegador te va a pedir permiso de micrófono. Aceptalo para que el agente te escuche.
+          </p>
         </div>
 
         <p class="widget-card__foot">🔴 En vivo — es una IA real respondiendo, no un bot pregrabado.</p>
@@ -170,7 +174,6 @@
   <p>GrupoCESA (GCS) — voicebots con IA para empresas.</p>
 </footer>
 
-<script src="https://unpkg.com/@elevenlabs/convai-widget-embed@0.20.0" async type="text/javascript"></script>
-<script src="script.js"></script>
+<script src="script.js" type="module"></script>
 </body>
 </html>
