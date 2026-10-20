@@ -1,5 +1,26 @@
 /* ---------- Tokens ---------- */
-:root {
+/* Tema claro: default. Mismo acento violeta (#7c5cff) que el tema oscuro,
+   para que la identidad de marca no cambie, solo el fondo/contraste. */
+:root,
+:root[data-theme="light"] {
+  --bg: #f6f6fa;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --border: #e2e3ec;
+  --text: #15161f;
+  --text-dim: #5b5e70;
+  --text-faint: #8d90a3;
+  --accent: #7c5cff;
+  --accent-soft: #7c5cff1f;
+  --accent-glow: #7c5cff33;
+  --radius: 16px;
+  --max-w: 1100px;
+  --card-shadow: 0 1px 2px #15161f0d, 0 8px 24px #15161f0f;
+  --glow-opacity: 0.22;
+}
+
+/* Tema oscuro: secundario, elegible vía el toggle del nav. */
+:root[data-theme="dark"] {
   --bg: #0a0b0f;
   --bg-elevated: #121420;
   --bg-card: #161925;
@@ -12,6 +33,8 @@
   --accent-glow: #7c5cff55;
   --radius: 16px;
   --max-w: 1100px;
+  --card-shadow: none;
+  --glow-opacity: 0.45;
 }
 
 * { box-sizing: border-box; }
@@ -24,6 +47,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -88,6 +112,35 @@ a { color: inherit; text-decoration: none; }
   white-space: nowrap;
 }
 .nav__cta:hover { border-color: var(--accent); color: var(--accent); }
+
+.nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.theme-toggle {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.theme-toggle svg { width: 18px; height: 18px; }
+
+/* Mostramos el ícono que representa a dónde se puede cambiar, no el tema
+   activo — en claro mostramos la luna ("pasar a oscuro"), en oscuro el sol. */
+.theme-toggle__sun { display: none; }
+:root[data-theme="dark"] .theme-toggle__moon { display: none; }
+:root[data-theme="dark"] .theme-toggle__sun { display: inline; }
 
 .hero__content {
   position: relative;
@@ -158,7 +211,7 @@ a { color: inherit; text-decoration: none; }
   border-radius: calc(var(--radius) + 2px);
   background: linear-gradient(135deg, var(--accent), #2f3bff, var(--accent));
   filter: blur(18px);
-  opacity: 0.45;
+  opacity: var(--glow-opacity);
   z-index: 0;
 }
 
@@ -170,6 +223,7 @@ a { color: inherit; text-decoration: none; }
   border-radius: var(--radius);
   padding: 2.25rem 1.5rem;
   text-align: center;
+  box-shadow: var(--card-shadow);
 }
 
 .widget-card__title {
@@ -393,6 +447,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.5rem;
+  box-shadow: var(--card-shadow);
 }
 
 .cap-card__icon {

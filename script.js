@@ -1,5 +1,32 @@
 import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm";
 
+// Toggle de tema claro/oscuro. El claro es el default (seteado en el CSS);
+// esto solo permite al visitante pasar a oscuro y lo recuerda en localStorage.
+// Corre siempre, independiente de si hay tabs de agente en la página.
+(function () {
+  const toggle = document.getElementById("theme-toggle");
+  if (!toggle) return;
+
+  function currentTheme() {
+    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  }
+
+  function applyLabel() {
+    const next = currentTheme() === "dark" ? "claro" : "oscuro";
+    toggle.setAttribute("aria-label", `Cambiar a tema ${next}`);
+  }
+  applyLabel();
+
+  toggle.addEventListener("click", () => {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    applyLabel();
+    try {
+      localStorage.setItem("theme", next);
+    } catch (e) {}
+  });
+})();
+
 // UI de llamada propia, sin el widget pre-armado de ElevenLabs. Antes
 // usábamos <elevenlabs-convai> (vive en shadow DOM) y había que "cazar" sus
 // botones internos por aria-label para auto-iniciar la llamada, ocultarlo
