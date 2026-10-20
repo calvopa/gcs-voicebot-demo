@@ -8,25 +8,38 @@ Stack: HTML + CSS + JS puro. Sin build, sin frameworks.
 
 ## Archivos
 
-- `index.html` — estructura de la página, incluye las 3 tabs de agentes con sus `agent-id`.
+- `index.html` — estructura de la página, incluye las tabs de agentes con sus `agent-id`.
 - `styles.css` — estilos (dark mode).
-- `script.js` — selector de agentes (monta/desmonta `<elevenlabs-convai>` dinámicamente) +
-  mensaje de estado del permiso de micrófono.
+- `script.js` — selector de agentes (monta/desmonta `<elevenlabs-convai>` dinámicamente,
+  arranca la llamada sola al elegir tab) + mensaje de estado del permiso de micrófono.
 
-## Selector de agentes (3 demos en vivo)
+## Selector de agentes (demos en vivo)
 
-La página tiene 3 tabs, cada una con su propio agente de ElevenLabs. Solo hay un
+La página tiene tabs, cada una con su propio agente de ElevenLabs. Solo hay un
 `<elevenlabs-convai>` montado en el DOM a la vez — `script.js` lo destruye y crea uno
-nuevo al cambiar de tab, así no quedan 3 widgets conectados en paralelo (consumiría
-recursos y pediría/mantendría el micrófono de más).
+nuevo al cambiar de tab, así no quedan varios widgets conectados en paralelo (consumiría
+recursos y pediría/mantendría el micrófono de más). Al elegir una tab, la llamada arranca
+sola (ver sección "Auto-start de la llamada" más abajo) — no hace falta un segundo click
+en el botón propio del widget.
 
 Agentes configurados en `index.html` (atributo `data-agent-id` de cada `.agent-tab`):
 
-| Tab | agent-id | Descripción |
-|---|---|---|
-| Clara | `agent_3001m236q168e24994skx7wskf5w` | Acompañante — agente conversacional de compañía |
-| RRHH | `agent_0901kbgae1pse21tqa2b10w5mxs9` | Asistente de voz para procesos de Recursos Humanos |
-| Alteor | `agent_4401krgvqay1ef38gw40payzz1rr` | Agente de voz para la empresa Alteor |
+| Tab | agent-id | Descripción | Estado |
+|---|---|---|---|
+| RRHH | `agent_0901kbgae1pse21tqa2b10w5mxs9` | Asistente de voz para procesos de Recursos Humanos | ✅ funciona |
+| Alteor | `agent_4401krgvqay1ef38gw40payzz1rr` | Agente de voz para la empresa Alteor | ⚠️ ver pendiente abajo |
+
+**Sacado de la demo:** `agent_3001m236q168e24994skx7wskf5w` ("Clara") — es el agente de
+**producción de JaiCARE** (otro proyecto, no esta demo), requiere una variable dinámica
+`nombre_paciente` en el primer mensaje que esta página no puede proveer y tira error al
+arrancar. Si se quiere un agente "Acompañante" para esta demo, armar uno nuevo pensado
+para uso público standalone, no reusar el de JaiCARE.
+
+**Pendiente:** Alteor tira `"Override for field 'language' is not allowed by config"` al
+iniciar la llamada — la configuración de seguridad de ese agente en ElevenLabs no permite
+que el widget le mande un override de idioma (a diferencia de RRHH, que sí lo permite).
+Se arregla desde el panel de ElevenLabs → agente Alteor → **Security** → habilitar
+overrides de idioma (o el campo que corresponda según la versión del panel).
 
 Para agregar, sacar o reordenar agentes, editá los botones `.agent-tab` dentro de
 `#widget` en `index.html` (cada uno lleva `data-agent-id` y `data-agent-name`) — no
@@ -58,7 +71,30 @@ elemento**, seteados en `script.js` → objeto `WIDGET_SKIN`, aplicados a cada
 Esto **reemplaza** el intento anterior con `::part()` en `styles.css` (no
 funcionaba — quedaba documentado acá por si en una versión futura del widget
 ElevenLabs expone partes reales). Para cambiar colores o textos, editá
-`WIDGET_SKIN` en `script.js` — se aplica a los 3 agentes por igual.
+`WIDGET_SKIN` en `script.js` — se aplica a todos los agentes por igual.
+
+## Auto-start de la llamada
+
+Al elegir una tab, la llamada arranca sola — no hace falta el segundo click en
+el botón propio del widget. Esta versión (`0.20.0`) **no expone un método JS**
+tipo `widget.startConversation()` en el elemento (se probó, el prototipo solo
+tiene los callbacks del custom element). El único gancho real es su botón
+interno dentro del shadow DOM: `script.js` → `autoStartConversation()` lo
+busca con `widget.shadowRoot.querySelector("button")` (el primer botón del
+panel, que en todos los agentes probados es el de iniciar llamada) y le hace
+`.click()`. Reintenta cada 200ms hasta 5 veces por si el shadow DOM todavía no
+se pobló cuando se intenta.
+
+**Frágil, ojo:** esto depende de la estructura interna del widget, que
+ElevenLabs no documenta ni garantiza entre versiones. Si tras actualizar
+`@elevenlabs/convai-widget-embed` la llamada deja de arrancar sola, probar:
+1. Abrir el widget manualmente y confirmar si el primer botón del panel
+   sigue siendo el de "iniciar llamada" (inspeccionar `shadowRoot` en DevTools).
+2. Si cambió el orden o la estructura, ajustar el selector en
+   `autoStartConversation()`.
+3. Si ElevenLabs termina exponiendo `startConversation()` como método público
+   del elemento en una versión futura, usar eso en vez del click al botón —
+   es la vía documentada y no depende de la estructura interna.
 
 **Lo que no se puede customizar:** el fondo, tipografía y layout del panel
 interno del widget (chrome propio de ElevenLabs, no configurable desde afuera

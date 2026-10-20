@@ -54,7 +54,30 @@
     "speaking-text": "Hablando…",
   };
 
-  function mountAgent(agentId) {
+  // Al elegir un agente con un click, arrancamos la llamada directo en vez de
+  // obligar a un segundo click en el botón propio del widget ("Iniciar llamada").
+  // Esta versión del widget (0.20.0) no expone un método JS tipo
+  // startConversation() en el elemento — el único gancho real es su botón
+  // interno dentro del shadow DOM. Buscarlo por aria-label/texto es frágil:
+  // algunos agentes no toman el start-call-text seteado (quedan en inglés,
+  // "Start a call"), así que usamos el primer <button> del panel — en todos
+  // los agentes probados es siempre el de iniciar la llamada, antes del de
+  // mensaje de texto. El shadow DOM tarda un toque en poblarse tras montar
+  // el widget, así que reintenta unas cuantas veces antes de rendirse (si
+  // falla, el usuario igual puede arrancar la llamada a mano).
+  function autoStartConversation(widget, attemptsLeft) {
+    const root = widget.shadowRoot;
+    const btn = root && root.querySelector("button");
+    if (btn) {
+      btn.click();
+      return;
+    }
+    if (attemptsLeft > 0) {
+      window.setTimeout(() => autoStartConversation(widget, attemptsLeft - 1), 200);
+    }
+  }
+
+  function mountAgent(agentId, autoStart) {
     mount.classList.add("is-switching");
     window.setTimeout(() => {
       mount.innerHTML = "";
@@ -65,8 +88,19 @@
       });
       mount.appendChild(widget);
       mount.classList.remove("is-switching");
+      if (autoStart) {
+        window.setTimeout(() => autoStartConversation(widget, 5), 200);
+      }
     }, 150);
   }
+
+  function unmountAgent() {
+    mount.innerHTML = "";
+  }
+
+  const initialTab = document.querySelector(".agent-tab.is-active") || tabs[0];
+  let currentAgentId = initialTab.dataset.agentId;
+  let isWidgetVisible = false;
 
   function selectTab(tab) {
     tabs.forEach((t) => {
@@ -75,7 +109,8 @@
     });
     tab.classList.add("is-active");
     tab.setAttribute("aria-selected", "true");
-    mountAgent(tab.dataset.agentId);
+    currentAgentId = tab.dataset.agentId;
+    if (isWidgetVisible) mountAgent(currentAgentId, true);
   }
 
   tabs.forEach((tab) => {
@@ -85,7 +120,29 @@
     });
   });
 
-  // Montar el primer agente (tab activo por defecto) al cargar la página.
-  const initialTab = document.querySelector(".agent-tab.is-active") || tabs[0];
-  mountAgent(initialTab.dataset.agentId);
+  // El widget de ElevenLabs flota fijo en una esquina y, una vez montado,
+  // queda visible en TODA la página (no solo cerca de la tarjeta de demo).
+  // Para que no persiga al usuario por el resto del sitio, se monta recién
+  // cuando la sección del selector entra en pantalla y se desmonta al salir.
+  const widgetSection = document.getElementById("widget");
+  if (widgetSection && "IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          isWidgetVisible = entry.isIntersecting;
+          if (entry.isIntersecting) {
+            mountAgent(currentAgentId);
+          } else {
+            unmountAgent();
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(widgetSection);
+  } else {
+    // Sin soporte de IntersectionObserver: fallback al comportamiento anterior.
+    isWidgetVisible = true;
+    mountAgent(currentAgentId);
+  }
 })();
